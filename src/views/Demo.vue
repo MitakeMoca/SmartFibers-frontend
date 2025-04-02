@@ -10,12 +10,14 @@
 				</p>
 			</div>
 
-			<!-- 移除 action 属性，改为手动上传 -->
 			<el-upload
 				class="upload-demo"
 				drag
+				action="/api/upload"
+				:on-success="handleSuccess"
+				:on-error="handleError"
 				:show-file-list="false"
-				:before-upload="uploadImage"
+				:before-upload="beforeUpload"
 			>
 				<i class="el-icon-upload"></i>
 				<div class="el-upload__text">
@@ -61,46 +63,30 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { handleImage } from '@/service/demo.ts';
 
 const originalUrl = ref('');
 const resultUrl = ref('');
 const loading = ref(false);
 
-// 上传图片并处理
-const uploadImage = async (file) => {
-	if (!file) return;
-
+const handleSuccess = (response, file) => {
+	originalUrl.value = URL.createObjectURL(file.raw);
 	loading.value = true;
 
-	try {
-		// 直接调用后端灰化接口，返回 blob
-		const formData = new FormData();
-		formData.append('file', file);
-		console.log(file instanceof File, file.type);
-
-		const response = await handleImage(formData);
-
-		// 获取二进制图像流
-		const blob = response.data;
-		const objectUrl = URL.createObjectURL(blob);
-
-		// 设置图像展示
-		resultUrl.value = objectUrl;
-		originalUrl.value = URL.createObjectURL(file);
-	} catch (error) {
-		ElMessage.error('Image processing failed: ' + error.message);
-	} finally {
+	// Simulate API delay or call your actual backend result endpoint
+	setTimeout(() => {
+		resultUrl.value = response.processedImageUrl;
 		loading.value = false;
-	}
+	}, 2000);
 };
 
-// 上传前的验证
+const handleError = () => {
+	ElMessage.error('Upload failed, please try again.');
+};
+
 const beforeUpload = (file) => {
-	console.log(`output->file.type`, file.type);
 	const isImage = file.type === 'image/jpeg' || file.type === 'image/png';
 	if (!isImage) {
 		ElMessage.error('Only PNG or JPG images are allowed');
@@ -108,7 +94,6 @@ const beforeUpload = (file) => {
 	return isImage;
 };
 
-// 处理下载结果
 const downloadResult = () => {
 	const link = document.createElement('a');
 	link.href = resultUrl.value;
